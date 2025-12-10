@@ -4,235 +4,158 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.brenzoapp.R
 import com.example.brenzoapp.ui.theme.Poppins
 
-// Playfair Display (как на главном экране)
-private val Playfair = FontFamily(
-    Font(R.font.playfair)
-)
+// шрифт заголовка
+private val Playfair = FontFamily(Font(R.font.playfair))
+
+private val AccentBrown = Color(0xFF4A3A2A)
+private val LightBeige = Color(0xFFEDE3D2)
+private val CardBeige = Color(0xFFF7EFE3)
 
 @Composable
-fun CartScreen(onBackClick: () -> Unit) {
+fun CartScreen(
+    viewModel: CoffeeViewModel,
+    onBackClick: () -> Unit
+) {
+    val cartItems = viewModel.cartItems
+    val totalPrice = cartItems.sumOf { it.unitPrice * it.quantity }
 
-    // Палитра
-    val backgroundColor = Color(0xFF3C2921)
-    val cardColor = Color(0xFFF4E6D8)
-    val accentBrown = Color(0xFF6B3F24)
-    val accentGold = Color(0xFFB68B4A)
-
-    val cardTextMain = Color(0xFF4A3A2A)
-    val cardTextSecondary = Color(0xFF6B5647)
-
-    val headerTextColor = Color(0xFFF4E8D8)
-    val headerSubtitleColor = headerTextColor.copy(alpha = 0.8f)
-    val headerIconColor = headerTextColor
-
-    // 🔹 ВНЕШНИЙ Column — только фон и разбиение на контент + нижний бар
+    // тёмно-коричневый фон
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(backgroundColor)
+            .background(AccentBrown)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
     ) {
-
-        // 🔹 ВЕРХ + СПИСОК — с паддингами 24dp
-        Column(
+        // ----- верхняя панель -----
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 24.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.SpaceBetween
+                .fillMaxWidth()
+                .padding(top = 12.dp, bottom = 24.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.arrow),
+                contentDescription = "Назад",
+                modifier = Modifier
+                    .size(22.dp)
+                    .clickable { onBackClick() },
+                colorFilter = ColorFilter.tint(Color(0xFFF4E8D8))
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Кошик",
+                fontFamily = Playfair,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFFF4E8D8)
+            )
+        }
 
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ===== ВЕРХ: стрелка + иконки на одном уровне, ниже — заголовок =====
+        // ----- светлый блок контента -----
+        Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp)),
+            colors = CardDefaults.cardColors(containerColor = LightBeige)
+        ) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
             ) {
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-
-                    Image(
-                        painter = painterResource(id = R.drawable.arrow),
-                        contentDescription = "Назад",
+                if (cartItems.isEmpty()) {
+                    Box(
                         modifier = Modifier
-                            .size(22.dp)
-                            .clickable { onBackClick() },
-                        colorFilter = ColorFilter.tint(headerIconColor)
-                    )
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.bookmark),
-                            contentDescription = "Збережені",
-                            modifier = Modifier.size(22.dp),
-                            colorFilter = ColorFilter.tint(headerIconColor)
+                        Text(
+                            text = "Ваш кошик порожній",
+                            fontFamily = Poppins,
+                            fontSize = 14.sp,
+                            color = Color(0xFF6B5647)
                         )
-
-                        Image(
-                            painter = painterResource(id = R.drawable.search),
-                            contentDescription = "Пошук",
-                            modifier = Modifier.size(22.dp),
-                            colorFilter = ColorFilter.tint(headerIconColor)
-                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(cartItems) { item ->
+                            CartItemRow(
+                                item = item,
+                                onRemove = { viewModel.removeFromCart(item.coffee) }
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(12.dp))
+                Divider(color = Color(0x14000000), thickness = 1.dp)
+                Spacer(modifier = Modifier.height(8.dp))
 
-                Text(
-                    text = "Кошик",
-                    fontFamily = Playfair,
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = headerTextColor
-                )
-
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Text(
-                    text = "Ваші вибрані напої та десерти.",
-                    fontFamily = Poppins,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = headerSubtitleColor
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // ===== СЕРЕДИНА: карточки товарів =====
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-
-                CartItemCard(
-                    title = "Капучино (на звичайному молоці)",
-                    price = "₴ 90",
-                    quantity = 1,
-                    accentColor = accentGold,
-                    cardColor = cardColor,
-                    textMainColor = cardTextMain,
-                    textSecondaryColor = cardTextSecondary,
-                    imageRes = R.drawable.cappuccino
-                )
-
-                CartItemCard(
-                    title = "Десерт Тірамісу",
-                    price = "₴ 120",
-                    quantity = 1,
-                    accentColor = accentGold,
-                    cardColor = cardColor,
-                    textMainColor = cardTextMain,
-                    textSecondaryColor = cardTextSecondary,
-                    imageRes = R.drawable.tiramisu
-                )
-
-                CartItemCard(
-                    title = "Крем-мед з бананом 90 г",
-                    price = "₴ 108",
-                    quantity = 2,        // две баночки
-                    accentColor = accentGold,
-                    cardColor = cardColor,
-                    textMainColor = cardTextMain,
-                    textSecondaryColor = cardTextSecondary,
-                    imageRes = R.drawable.honeybanana
-                )
-            }
-        }
-
-        // 🔹 НИЖНИЙ БАР — БЕЗ внешнего horizontal padding, фон на всю ширину
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0x1AFFFFFF))
-                .padding(horizontal = 24.dp, vertical = 28.dp)
-        ) {
-            // Тонкая светлая линия-разделитель
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(Color(0x33FFFFFF))
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-
-                Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(
-                        text = "Разом",
+                        text = "Всього:",
                         fontFamily = Poppins,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = headerSubtitleColor
+                        fontSize = 14.sp,
+                        color = Color(0xFF6B5647)
                     )
                     Text(
-                        text = "₴ 318",
+                        text = "₴$totalPrice",
                         fontFamily = Poppins,
-                        fontSize = 20.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = headerTextColor
+                        color = AccentBrown
                     )
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Button(
-                    onClick = { /* TODO: оформити замовлення */ },
+                    onClick = { /* TODO: логіка оплати */ },
                     modifier = Modifier
-                        .height(50.dp)
-                        .width(150.dp),
-                    shape = RoundedCornerShape(25.dp),
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .padding(bottom = 8.dp),
+                    shape = RoundedCornerShape(26.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = accentBrown,
-                        contentColor = Color(0xFFFFF4E5)
-                    ),
-                    elevation = ButtonDefaults.buttonElevation(
-                        defaultElevation = 4.dp,
-                        pressedElevation = 6.dp
+                        containerColor = AccentBrown,
+                        contentColor = LightBeige
                     )
                 ) {
                     Text(
-                        text = "Оформити",
+                        text = "Оплатити",
                         fontFamily = Poppins,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
                     )
                 }
             }
@@ -240,130 +163,70 @@ fun CartScreen(onBackClick: () -> Unit) {
     }
 }
 
-// ===== Картка товару з картинкою =====
-
 @Composable
-private fun CartItemCard(
-    title: String,
-    price: String,
-    quantity: Int,
-    accentColor: Color,
-    cardColor: Color,
-    textMainColor: Color,
-    textSecondaryColor: Color,
-    imageRes: Int
+private fun CartItemRow(
+    item: CartItem,
+    onRemove: () -> Unit
 ) {
+    val itemTotal = item.unitPrice * item.quantity
+
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = cardColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBeige),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-
-        Box(modifier = Modifier.fillMaxWidth()) {
-
-            // ---------- КРЕСТИК (справа сверху) ----------
-            Image(
-                painter = painterResource(id = R.drawable.cross),
-                contentDescription = "Видалити",
-                modifier = Modifier
-                    .size(12.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-12).dp, y = 12.dp),   // ← ВАЖНО: смещаем внутрь и выше
-                colorFilter = ColorFilter.tint(Color(0xFF4A3A2A))
-            )
-
-
-            // ---------- ОСНОВНОЙ КОНТЕНТ КАРТОЧКИ ----------
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
-                    painter = painterResource(id = imageRes),
-                    contentDescription = title,
-                    modifier = Modifier.size(56.dp)
+                    painter = painterResource(id = item.coffee.imageRes),
+                    contentDescription = item.coffee.name,
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
                 )
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = title,
-                        fontFamily = Poppins,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = textMainColor
-                    )
-
-                    Spacer(modifier = Modifier.height(2.dp))
-
-                    Text(
-                        text = price,
+                        text = item.coffee.name,
                         fontFamily = Poppins,
                         fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = accentColor
+                        fontWeight = FontWeight.SemiBold,
+                        color = AccentBrown
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        QuantityChip(text = "–")
-                        Text(
-                            text = quantity.toString(),
-                            fontFamily = Poppins,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = textMainColor
-                        )
-                        QuantityChip(text = "+")
-                    }
+                    Text(
+                        text = "₴${item.unitPrice} × ${item.quantity}",
+                        fontFamily = Poppins,
+                        fontSize = 12.sp,
+                        color = Color(0xFF6B5647)
+                    )
                 }
+
+                Text(
+                    text = "₴$itemTotal",
+                    fontFamily = Poppins,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = AccentBrown
+                )
             }
+
+            Image(
+                painter = painterResource(id = R.drawable.cross),
+                contentDescription = "Прибрати з кошика",
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(18.dp)
+                    .clickable { onRemove() },
+                colorFilter = ColorFilter.tint(Color(0xFFB0AAA0))
+            )
         }
     }
-}
-
-
-// ===== Кнопки + / - =====
-
-@Composable
-private fun QuantityChip(text: String) {
-    Box(
-        modifier = Modifier
-            .size(24.dp)
-            .background(
-                color = Color(0xFFEBD7C0),
-                shape = RoundedCornerShape(12.dp)
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = text,
-            fontFamily = Poppins,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF6B3F24)
-        )
-    }
-}
-
-// ПРЕВ’Ю
-
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true,
-    showSystemUi = true
-)
-@Composable
-fun CartScreenPreview() {
-    CartScreen(onBackClick = {})
 }

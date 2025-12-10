@@ -3,16 +3,14 @@ package com.example.brenzoapp.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,37 +27,70 @@ import com.example.brenzoapp.ui.theme.Poppins
 
 @Composable
 fun CoffeeDetailsScreen(
+    coffee: CoffeeItem,
+    viewModel: CoffeeViewModel,
     onBackClick: () -> Unit = {}
 ) {
     var isFavorite by remember { mutableStateOf(false) }
 
     var selectedMilk by remember { mutableStateOf("Classic") }
-    var selectedSize by remember { mutableStateOf("350 мл") }
+    var selectedSize by remember { mutableStateOf("250 мл") }
     var quantity by remember { mutableStateOf(1) }
-
 
     val headerIconColor = Color(0xFFF4E8D8)
     val coffeeIconTint = Color(0xFF4A3A2A)
 
-    val basePrice = when (selectedSize) {
-        "250 мл" -> 80
-        "350 мл" -> 90
-        "450 мл" -> 100
-        else -> 90
+    // опис, міцність, калорії залежать від напою
+    val (description, strengthFilled, calories) = when (coffee.name) {
+        "Лате" -> Triple(
+            "Ніжна кава з великою кількістю молока. Ідеальна для м’якого смаку.",
+            2,
+            210
+        )
+        "Американо" -> Triple(
+            "Класичний чорний напій на основі еспресо, розбавлений гарячою водою.",
+            4,
+            10
+        )
+        else -> Triple(
+            "Ніжне молоко та насичений еспресо. Ідеальний напій для затишної паузи в Brenzo.",
+            3,
+            180
+        )
     }
-    val totalPrice = basePrice * quantity
+
+    // базова ціна за 250 мл — це price з CoffeeItem
+    val base250 = coffee.price
+
+    val sizeExtra = when (selectedSize) {
+        "250 мл" -> 0
+        "350 мл" -> 10
+        "450 мл" -> 20
+        else -> 0
+    }
+
+    val milkExtra = when (selectedMilk) {
+        "Classic" -> 0
+        "Oat"     -> 40
+        "Coconut" -> 35
+        "Almond"  -> 30
+        "None"    -> 0   // Американо без молока
+        else      -> 0
+    }
+
+    val unitPrice = base250 + sizeExtra + milkExtra
+    val totalPrice = unitPrice * quantity
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFEDE3D2))
     ) {
-
-        // ----- Верх: фото + назад + обране -----
+        // верхнє фото + назад + обране
         Box {
             Image(
-                painter = painterResource(id = R.drawable.cappuccino),
-                contentDescription = "Капучино",
+                painter = painterResource(id = coffee.imageRes),
+                contentDescription = coffee.name,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(340.dp)
@@ -75,12 +106,10 @@ fun CoffeeDetailsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-
                     .padding(horizontal = 16.dp, vertical = 24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-
                 Image(
                     painter = painterResource(id = R.drawable.arrow),
                     contentDescription = "Назад",
@@ -89,7 +118,6 @@ fun CoffeeDetailsScreen(
                         .clickable { onBackClick() },
                     colorFilter = ColorFilter.tint(headerIconColor)
                 )
-
 
                 Box(
                     modifier = Modifier
@@ -114,9 +142,8 @@ fun CoffeeDetailsScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ----- Назва + опис -----
         Text(
-            text = "Капучино",
+            text = coffee.name,
             fontFamily = Poppins,
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold,
@@ -127,7 +154,7 @@ fun CoffeeDetailsScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Ніжне молоко та насичений еспресо. Ідеальний напій для затишної паузи в Brenzo.",
+            text = description,
             fontFamily = Poppins,
             fontSize = 14.sp,
             color = Color(0xFF6B5647),
@@ -136,178 +163,46 @@ fun CoffeeDetailsScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ----- Міцність + калорії -----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Міцність
-            Column {
-                Text(
-                    text = "Міцність",
-                    fontFamily = Poppins,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF6B5647)
-                )
-
-                // чуть ниже, как на референсе
-                Spacer(modifier = Modifier.height(6.dp))
-
-                Row {
-                    // 3 заповнені зерна
-                    repeat(3) {
-                        Image(
-                            painter = painterResource(id = R.drawable.coffee),
-                            contentDescription = "Сила кави",
-                            modifier = Modifier
-                                .size(18.dp)
-                                .padding(end = 3.dp),
-                            colorFilter = ColorFilter.tint(coffeeIconTint)
-                        )
-                    }
-                    // 2 порожні зерна
-                    repeat(2) {
-                    Image(
-                        painter = painterResource(id = R.drawable.coffee_p),
-                        contentDescription = "Слабше зерно",
-                        modifier = Modifier.size(16.dp),
-                        colorFilter = ColorFilter.tint(coffeeIconTint)
-                    )
-                    }
-                }
-            }
-
-            // Калорії
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Калорії",
-                    fontFamily = Poppins,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF6B5647)
-                )
-                Text(
-                    text = "180 ккал",
-                    fontFamily = Poppins,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF4A3A2A)
-                )
-            }
-        }
+        // Міцність + калорії
+        StrengthAndCaloriesRow(
+            strengthFilled = strengthFilled,
+            calories = calories,
+            coffeeIconTint = coffeeIconTint
+        )
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ----- Вибір молока -----
-        Text(
-            text = "Виберіть молоко",
-            fontFamily = Poppins,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF4A3A2A),
-            modifier = Modifier.padding(horizontal = 24.dp)
+        // Вибір молока
+        MilkSection(
+            coffeeName = coffee.name,
+            selectedMilk = selectedMilk,
+            onMilkChange = { selectedMilk = it }
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OptionChip("Класичне", selectedMilk == "Classic") { selectedMilk = "Classic" }
-            OptionChip("Вівсяне", selectedMilk == "Oat") { selectedMilk = "Oat" }
-            OptionChip("Кокосове", selectedMilk == "Coconut") { selectedMilk = "Coconut" }
-            OptionChip("Бананове", selectedMilk == "Almond") { selectedMilk = "Almond" }
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ----- Розмір кави -----
-        Text(
-            text = "Розмір кави",
-            fontFamily = Poppins,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF4A3A2A),
-            modifier = Modifier.padding(horizontal = 24.dp)
+        // Розмір кави
+        SizeSection(
+            selectedSize = selectedSize,
+            onSizeChange = { selectedSize = it }
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            OptionChip("250 мл", selectedSize == "250 мл") { selectedSize = "250 мл" }
-            OptionChip("350 мл", selectedSize == "350 мл") { selectedSize = "350 мл" }
-            OptionChip("450 мл", selectedSize == "450 мл") { selectedSize = "450 мл" }
-        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
-        // ----- Кількість + ціна -----
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-
-            // кількість
-            Row(verticalAlignment = Alignment.CenterVertically) {
-
-                SmallCircleButton(text = "–") {
-                    if (quantity > 1) quantity--
-                }
-
-                Text(
-                    text = quantity.toString(),
-                    fontFamily = Poppins,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF4A3A2A),
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                SmallCircleButton(text = "+") {
-                    quantity++
-                }
-            }
-
-            // ціна
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "Ціна",
-                    fontFamily = Poppins,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF6B5647)
-                )
-
-                Text(
-                    text = "₴$totalPrice",
-                    fontFamily = Poppins,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF4A3A2A)
-                )
-            }
-        }
+        // Кількість + ціна
+        QuantityAndPriceRow(
+            quantity = quantity,
+            onQuantityChange = { quantity = it },
+            totalPrice = totalPrice
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ----- Кнопка з тінню знизу -----
+        // Кнопка "Додати в кошик"
         Button(
-            onClick = { /* TODO: додати в кошик */ },
+            onClick = {
+                viewModel.addToCart(coffee, unitPrice, quantity)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp, vertical = 24.dp)
@@ -333,21 +228,222 @@ fun CoffeeDetailsScreen(
     }
 }
 
-/** Маленька кругла кнопка (+ / -) */
+// ================== helper-компоненты ==================
+
+@Composable
+private fun StrengthAndCaloriesRow(
+    strengthFilled: Int,
+    calories: Int,
+    coffeeIconTint: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column {
+            Text(
+                text = "Міцність",
+                fontFamily = Poppins,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF6B5647)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row {
+                repeat(strengthFilled) {
+                    Image(
+                        painter = painterResource(id = R.drawable.coffee),
+                        contentDescription = "Сила кави",
+                        modifier = Modifier
+                            .size(18.dp)
+                            .padding(end = 3.dp),
+                        colorFilter = ColorFilter.tint(coffeeIconTint)
+                    )
+                }
+                repeat(5 - strengthFilled) {
+                    Image(
+                        painter = painterResource(id = R.drawable.coffee_p),
+                        contentDescription = "Слабше зерно",
+                        modifier = Modifier.size(16.dp),
+                        colorFilter = ColorFilter.tint(coffeeIconTint)
+                    )
+                }
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "Калорії",
+                fontFamily = Poppins,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF6B5647)
+            )
+            Text(
+                text = "$calories ккал",
+                fontFamily = Poppins,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF4A3A2A)
+            )
+        }
+    }
+}
+
+@Composable
+private fun MilkSection(
+    coffeeName: String,
+    selectedMilk: String,
+    onMilkChange: (String) -> Unit
+) {
+    Text(
+        text = "Виберіть молоко",
+        fontFamily = Poppins,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = Color(0xFF4A3A2A),
+        modifier = Modifier.padding(horizontal = 24.dp)
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // тільки для Американо — "Без молока" першим
+        if (coffeeName == "Американо") {
+            OptionChip(
+                text = "Без молока",
+                selected = selectedMilk == "None",
+                onClick = { onMilkChange("None") }
+            )
+        }
+
+        OptionChip(
+            text = "Класичне",
+            selected = selectedMilk == "Classic",
+            onClick = { onMilkChange("Classic") }
+        )
+
+        OptionChip(
+            text = "Вівсяне",
+            selected = selectedMilk == "Oat",
+            onClick = { onMilkChange("Oat") }
+        )
+
+        OptionChip(
+            text = "Кокосове",
+            selected = selectedMilk == "Coconut",
+            onClick = { onMilkChange("Coconut") }
+        )
+
+        // Бананове — тільки не для Американо
+        if (coffeeName != "Американо") {
+            OptionChip(
+                text = "Бананове",
+                selected = selectedMilk == "Almond",
+                onClick = { onMilkChange("Almond") }
+            )
+        }
+    }
+}
+
+@Composable
+private fun SizeSection(
+    selectedSize: String,
+    onSizeChange: (String) -> Unit
+) {
+    Text(
+        text = "Розмір кави",
+        fontFamily = Poppins,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = Color(0xFF4A3A2A),
+        modifier = Modifier.padding(horizontal = 24.dp)
+    )
+
+    Spacer(modifier = Modifier.height(8.dp))
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        OptionChip("250 мл", selectedSize == "250 мл") { onSizeChange("250 мл") }
+        OptionChip("350 мл", selectedSize == "350 мл") { onSizeChange("350 мл") }
+        OptionChip("450 мл", selectedSize == "450 мл") { onSizeChange("450 мл") }
+    }
+}
+
+@Composable
+private fun QuantityAndPriceRow(
+    quantity: Int,
+    onQuantityChange: (Int) -> Unit,
+    totalPrice: Int
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SmallCircleButton(text = "–") {
+                if (quantity > 1) onQuantityChange(quantity - 1)
+            }
+
+            Text(
+                text = quantity.toString(),
+                fontFamily = Poppins,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF4A3A2A),
+                modifier = Modifier.padding(horizontal = 12.dp)
+            )
+
+            SmallCircleButton(text = "+") {
+                onQuantityChange(quantity + 1)
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = "Ціна",
+                fontFamily = Poppins,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF6B5647)
+            )
+            Text(
+                text = "₴$totalPrice",
+                fontFamily = Poppins,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF4A3A2A)
+            )
+        }
+    }
+}
+
 @Composable
 private fun SmallCircleButton(
     text: String,
-    darkBackground: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bg = if (darkBackground) Color(0x66000000) else Color(0xFFF0DCC5)
-    val fg = if (darkBackground) Color.White else Color(0xFF6B3F24)
-
     Box(
         modifier = Modifier
             .size(32.dp)
             .clip(RoundedCornerShape(16.dp))
-            .background(bg)
+            .background(Color(0xFFF0DCC5))
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
@@ -356,12 +452,11 @@ private fun SmallCircleButton(
             fontSize = 16.sp,
             fontFamily = Poppins,
             fontWeight = FontWeight.SemiBold,
-            color = fg
+            color = Color(0xFF6B3F24)
         )
     }
 }
 
-/** Чіп-опція (молоко / розмір) */
 @Composable
 private fun OptionChip(
     text: String,
@@ -387,13 +482,4 @@ private fun OptionChip(
             color = fg
         )
     }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(
-    showBackground = true,
-    showSystemUi = true
-)
-@Composable
-fun CoffeeDetailsPreview() {
-    CoffeeDetailsScreen()
 }
